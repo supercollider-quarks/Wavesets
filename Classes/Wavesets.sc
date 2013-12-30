@@ -3,7 +3,8 @@
 // only works for single channels.
 
 /*****
-	to do:
+SCDoc.indexAllDocuments;
+to do:
 		analyse turnaround points better:
 		reverse-interpolate where between samples
 		the actual turnaround point would be,
