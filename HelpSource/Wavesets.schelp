@@ -1,7 +1,7 @@
 TITLE:: Wavesets
 summary:: analyse soundfiles into short fragments for granular synthesis
 categories:: GranularSynthesis
-related:: Buffer, Event
+related:: Classes/Buffer, Classes/Event
 
 DESCRIPTION::
 Wavesets analyses soundfiles into short fragments called wavesets, and contains these waveset data and their info. It can support a variety of waveset based synthesis instruments.
@@ -11,9 +11,12 @@ one non-positive to positive zero crossing and the next. [ see T. Wishart (1994)
 
 In extension of that concept, the Wavesets class provides fractional zero crossings, amplitude analyses, and other statistical data.
 
-See also the end of Chapter 16, Microsound, in the SuperCollider Book at MIT Press for detailed examples.
+See also the end of Chapter 16, Microsound, in the SuperCollider Book at MIT Press for detailed examples - code available here: 
+
+link::http://supercolliderbook.net/::
 
 code::
+	// first code example: 
 
 Server.default = s = Server.internal; s.boot;
 		
