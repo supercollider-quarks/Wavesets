@@ -11,19 +11,18 @@ one non-positive to positive zero crossing and the next. [ see T. Wishart (1994)
 
 In extension of that concept, the Wavesets class provides fractional zero crossings, amplitude analyses, and other statistical data.
 
-See also the end of Chapter 16, Microsound, in the SuperCollider Book at MIT Press for detailed examples - code available here: 
+See also the end of Chapter 16, Microsound, in the SuperCollider Book at MIT Press for detailed examples - code available here:
 
 link::http://supercolliderbook.net/::
 
 code::
-	// first code example: 
 
-Server.default = s = Server.internal; s.boot;
-		
-		// make a wavesets from a soundfile
-w = Wavesets.from(String.scDir +/+ "sounds/a11wlk01.wav");	
-w.dump;		// contains mainly analysis data 
-				
+Server.default.boot; // make sure server is booted
+
+// make a wavesets from a soundfile
+w = Wavesets.from(String.scDir +/+ "sounds/a11wlk01.wav");
+w.dump;		// contains mainly analysis data
+
 w.plot(200, 1);	// plot a single waveset
 w.signal.copyRange(w.xings[600], w.xings[601]).plot;
 
@@ -31,23 +30,27 @@ w.plot(600, 1);	// a single
 w.plot(600, 5);	// a group of five contiguous wavesets
 w.buffer;
 w.buffer.play;
-	
+
+// build and add the SynthDefs
 Wavesets.prepareSynthDefs;
-	// startWs
+
+// eventFor returns an event that can be played directly
 w.eventFor(startWs: 600, length: 5, repeats: 2).postln.play;
 w.eventFor(startWs: 600, length: 2, playRate: 1, repeats: 5).postln.play;
 w.eventFor(startWs: 600, length: 2, playRate: 0.5, repeats: 5).postln.play;
 w.eventFor(700, 20, 5, 1).play;
-		
+
 (
-fork { 
-	666.do { |i| 
-		var ev = w.eventFor(i * 5, 2, 5, exprand(0.5, 1.0)); 
+fork {
+	666.do { |i|
+		var ev = w.eventFor(i * 5, 2, 5, exprand(0.5, 1.0));
 		ev.put(\pan, 1.0.rand2).play;
 		ev.sustain.wait;
 	}
 };
 )
+
+
 ::
 
 CLASSMETHODS::
@@ -68,7 +71,7 @@ a symbol.
 METHOD:: clear
 clear all existing wavesets from the Wavesets.all.
 
-METHOD:: from 
+METHOD:: from
 make a Wavesets from a emphasis::MONO:: soundfile at path.
 ARGUMENT:: path
 the path to the soundfile.
@@ -97,58 +100,74 @@ INSTANCEMETHODS::
 subSection:: Instance variables
 
 method:: signal
-the audio signal that was analysed. 
+the audio signal that was analysed.
 
-method:: name 
+method:: name
 the wavesets name in the global dictionary
 
 method:: buffer
 a buffer on the server that was created from the same soundfile
 
-method:: numFrames 
+method:: numFrames
 the number of frames of the soundfile, the buffer and the Wavesets
 
 method:: sampleRate
 the sample rate of the signal/buffer. default is s.sampleRate
 
-strong:: These variables are analysis result lists:
-method:: xings	
+subsection:: These variables are analysis result lists
+
+method:: xings
 all integer indices of the zero crossings found
+
 method:: numXings
 total number of zero crossings found
+
 method:: lengths
 lengths of all wavesets
+
 method:: amps
 peak amplitude of every waveset
-method:: maxima	
+
+method:: maxima
 indices of positive maximum value in every waveset
-method:: minima	
+
+method:: minima
 indices of negative minimum value in every waveset
 
-method:: fracXings	
+method:: fracXings
 the calculated fractional zerocrossing points. This allows for more precise pitch information and waveset transitions, resulting in smoother sound.
+
 method:: fracLengths
 fractional lengths - in effect, this is 1/wavesetFreq.
 
-strong:: These are overall statistics of the entire Wavesets:
+
+subsection:: These are overall statistics of the entire Wavesets
+
 method:: minSet
 shorted waveset
+
 method:: maxSet
 longest waveset
+
 method:: avgLength
 average length of all wavesets
+
 method:: sqrAvgLength
 weighted average length - so bigger wavesets have a larger impact
-method:: minAmp	
+
+method:: minAmp
 softest waveset amplitude
-method:: maxAmp	
+
+method:: maxAmp
 loudest waveset amplitude
+
 method:: avgAmp
 average amplitude of the entire waveset
+
 method:: sqrAvgAmp
 weighted average of (squared) amplitude of the entire waveset
 
-strong:: Instance methods
+subsection:: Further instance methods
 
 METHOD:: eventFor
 generate an event for a given combination of start waveset index, number of wavesets, repeats, playback rate, and use of fractional crossings.
@@ -177,39 +196,38 @@ plot a section of <length> Wavesets from <startWs>
 EXAMPLES::
 
 code::
-The simplest usage is to ask the waveset to prepare an event for you.
 
-		w = Wavesets.from("sounds/a11wlk01.wav");	
+// The simplest usage is to ask the waveset to prepare an event for you.
 
-	(
-		fork { 
-			666.do { |i| 
-				var ev = w.eventFor((i * 5).postln, 2, 5, exprand(0.5, 1.0)); 
-				ev.put(\pan, 1.0.rand2).play;
-				ev.sustain.wait;
-			}
-		};		
-	)
+w = Wavesets.from(String.scDir +/+ "sounds/a11wlk01.wav");
 
-
+(
+	fork {
+		666.do { |i|
+			var ev = w.eventFor((i * 5).postln, 2, 5, exprand(0.5, 1.0));
+			ev.put(\pan, 1.0.rand2).play;
+			ev.sustain.wait;
+		}
+	}
+)
 
 
 	// play a single waveset or waveset group by hand
 (
-{ 	var startFr, endFr, dur; 
-	startFr = w.xings[800]; 
+{ 	var startFr, endFr, dur;
+	startFr = w.xings[800];
 	endFr = w.xings[820];
-	
+
 	dur = endFr - startFr / w.buffer.sampleRate;
 	dur.postln;
-	BufRd.ar(1, w.buffer, Line.ar(startFr, endFr, dur, doneAction: 2)) 
+	BufRd.ar(1, w.buffer, Line.ar(startFr, endFr, dur, doneAction: 2))
 }.play;
 )
 
-	loop buffer segments with a Phasor:
+	// loop buffer segments with a Phasor:
 (
-x = { arg start = 0, end = 128, playRate = 1; 
-	BufRd.ar(1, w.buffer, 
+x = { arg start = 0, end = 128, playRate = 1;
+	BufRd.ar(1, w.buffer,
 		Phasor.ar(0, playRate * BufRateScale.kr(w.buffer), start, end)
 	)
 }.scope(zoom: 8);
@@ -227,44 +245,44 @@ x.release;
 
 ::
 
-Doing Some Task (optional)
-		
-Examples
+section::Task Examples
 
-code::
-To play a waveset (or group) for a precise number of repetitions, 
+To play a waveset (or group) for a precise number of repetitions,
 one can use a SynthDef with a hard cutoff envelope, as below.
-Note that adding an offset outside the phasor works better; 
+Note that adding an offset outside the phasor works better;
 Phasor.ar(0, playRate, start, end) is sometimes off by a few samples.
 This is likely a 32bit float precision problem.
 
-(	// the simplest synthdef as implented in *prepareSynthDefs: 
-SynthDef(\wvst0, { arg out = 0, buf = 0, start = 0, length = 441, playRate = 1, sustain = 1, amp=0.2, pan; 
+code::
+(
+// the simplest synthdef as implented in *prepareSynthDefs:
+SynthDef(\wvst0, { arg out = 0, buf = 0, start = 0, length = 441, playRate = 1, sustain = 1, amp=0.2, pan;
 	var phasor = Phasor.ar(0, BufRateScale.ir(buf) * playRate, 0, length) + start;
 	var env = EnvGen.ar(Env([amp, amp, 0], [sustain, 0]), doneAction: 2);
 	var snd = BufRd.ar(1, buf, phasor) * env;
-	
+
 	OffsetOut.ar(out, Pan2.ar(snd, pan));
-}, \ir.dup(8)).memStore;
+}, \ir.dup(8)).add;
 )
 
 Synth("wvst0", [\bufnum, b, \start, 0, \length, 5000, \sustain, 0.1]);
 
-	// do the math by hand to understand it:
+
+// do the math by hand to understand it:
 (
 var startWs = 100, length = 6, rep = 10, playRate = 0.5;
 var startframe, endframe, sustain;
 
 startframe = w.xings[startWs];
 endframe = w.xings[startWs + length];
-sustain = (endframe - startframe) * rep / playRate / w.sampleRate; 
+sustain = (endframe - startframe) * rep / playRate / w.sampleRate;
 
 Synth("wvst0", [
-	\bufnum, w.buffer, 
-	\start, startframe, 
-	\length, endframe - startframe, 
+	\bufnum, w.buffer,
+	\start, startframe,
+	\length, endframe - startframe,
 	\playRate, playRate,
-	\sustain, sustain, 
+	\sustain, sustain,
 	\amp, 1
 ]);
 )
@@ -272,66 +290,66 @@ Synth("wvst0", [
 w.eventFor(100, 6, repeats: 10, playRate: 0.5).put(\amp, 1).play;
 
 (
-Task({ 
-	300.do({ arg i; 
+Task({
+	300.do({ arg i;
 		var ev = w.eventFor(100 + i, 2, 10, 1);
-				
+
 		ev.putPairs([\pan, [-1, 1].choose, \amp, 0.5]);
 		ev.play;
-		(ev.sustain).wait; 
+		(ev.sustain).wait;
 	});
 }).play;
 )
 
-x = a11wlk01-44_1.aiff; 
 
-		// compare fractional and integer xings:
-		// especially for high frequency signals, 
-		// fractional does slightly cleaner looping and finer pitch gradations.
-		// - better test below with ordering wavesets by length -
+// compare fractional and integer xings:
+// especially for high frequency signals,
+// fractional does slightly cleaner looping and finer pitch gradations.
+// - better test below with ordering wavesets by length -
+
 (
-Task({ 
-	[true, false].do { |usefrac| 
-		(1250..1500).do { arg i; 
+Task({
+	[true, false].do { |usefrac|
+		(1250..1500).do { arg i;
 			var ev = w.eventFor(i, 1, 100, 1, useFrac: usefrac);
-					
+
 			ev.putPairs([/*\pan, 0 [-1, 1].choose,*/ \amp, 0.5]);
 			ev.play;
-			(ev.sustain).wait; 
+			(ev.sustain).wait;
 		};
 		1.wait;
 	};
 }).play;
 )
 
-		// some variants waveset timestretch
+// some variants waveset timestretch
 (
-Task({ 
-		// segments of 10 wavesets, step by 1 => 10x longer
-	(300, 301 .. 900).do { arg start; 
+Task({
+	// segments of 10 wavesets, step by 1 => 10x longer
+	(300, 301 .. 900).do { arg start;
 		var ev = w.eventFor(start, numWs: 10, repeats: 1);
-				
-		ev.putPairs([\amp, 0.5]);
-		ev.play;
-		(ev.sustain).wait; 
-	};
-	1.wait; 
 
-		// 1 waveset at a time, loop 10 times - much more 'pitch beads'-like
-	(300, 301 .. 900).do { arg start; 
-		var ev = w.eventFor(start, numWs: 1, repeats: 10);
-				
 		ev.putPairs([\amp, 0.5]);
 		ev.play;
-		(ev.sustain).wait; 
+		(ev.sustain).wait;
 	};
-	
+	1.wait;
+
+	// 1 waveset at a time, loop 10 times - much more 'pitch beads'-like
+	(300, 301 .. 900).do { arg start;
+		var ev = w.eventFor(start, numWs: 1, repeats: 10);
+
+		ev.putPairs([\amp, 0.5]);
+		ev.play;
+		(ev.sustain).wait;
+	};
+
 }).play;
 )
 
 
 
-	// play them sorted by (integer) waveset length: 
+// play them sorted by (integer) waveset length:
 w.lengths.plot;	// lengths are very irregular
 o = w.lengths.order;
 
@@ -339,15 +357,15 @@ o = w.lengths.order;
 Task {
 	var start, end, startFr, endFr, dur, repeats;
 	var order = w.lengths.order;
-	    
-	[false, true].do { |useFrac| 
-		if (useFrac) { 
-			"fractional crossings - better pitch resolution." 
+
+	[false, true].do { |useFrac|
+		if (useFrac) {
+			"fractional crossings - better pitch resolution."
 		} {
 			"integer crossings - pitches quantized to integer sample lengths."
 		}.postln;
-		
-		order.do { arg start; 
+
+		order.do { arg start;
 			var ev = w.eventFor(start, numWs: 1, repeats: 5);
 			ev.putPairs([\amp, 0.5]);
 			ev.play;
