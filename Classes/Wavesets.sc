@@ -17,15 +17,14 @@ Wavesets {
 	classvar <all, formatDict;
 	classvar <>defaultInst = \wvst0;
 
-	var 	<signal, <name, <numFrames, <sampleRate;
-	var	<xings, <lengths, <fracXings, <fracLengths,
-		<amps, <maxima, <minima;
-	var 	<numXings, <minSet, <maxSet, <avgLength, <sqrAvgLength,
-		<minAmp, <maxAmp, <avgAmp, <sqrAvgAmp;
-	var 	<>path, <buffer;
+	var <signal, <name, <numFrames, <sampleRate;
+	var	<xings, <lengths, <fracXings, <fracLengths, <amps, <maxima, <minima;
+	var <numXings, <minSet, <maxSet, <avgLength, <sqrAvgLength, <minAmp, <maxAmp, <avgAmp, <sqrAvgAmp;
+	var <>path, <buffer;
 
 	*prepareSynthDefs {
-		SynthDef(\wvst0, { arg out = 0, buf = 0, start = 0, length = 441, playRate = 1, sustain = 1, amp=0.2, pan;
+
+		SynthDef(\wvst0, { | out = 0, buf = 0, start = 0, length = 441, playRate = 1, sustain = 1, amp = 0.2, pan |
 			var phasor = Phasor.ar(0, BufRateScale.ir(buf) * playRate, 0, length) + start;
 			var env = EnvGen.ar(Env([amp, amp, 0], [sustain, 0]), doneAction: 2);
 			var snd = BufRd.ar(1, buf, phasor) * env;
@@ -33,8 +32,8 @@ Wavesets {
 			OffsetOut.ar(out, Pan2.ar(snd, pan));
 		}, \ir.dup(8)).add;
 
-		SynthDef(\wvst1gl, { arg out = 0, buf = 0, start = 0, length = 441, playRate = 1, playRate2 = 1, sustain = 1,
-			amp=0.2, pan;
+		SynthDef(\wvst1gl, { | out = 0, buf = 0, start = 0, length = 441, playRate = 1, playRate2 = 1, sustain = 1,
+			amp = 0.2, pan |
 			var playRateEnv = Line.ar(playRate, playRate2, sustain);
 			var phasor = Phasor.ar(0, BufRateScale.ir(buf) * playRateEnv, 0, length) + start;
 			var env = EnvGen.ar(Env([amp, amp, 0], [sustain, 0]), doneAction: 2);
@@ -42,6 +41,7 @@ Wavesets {
 
 			OffsetOut.ar(out, Pan2.ar(snd, pan));
 		}, \ir.dup(8)).add;
+
 	}
 
 	*new { arg name, sig, sampleRate;
@@ -82,7 +82,7 @@ Wavesets {
 		buffer.allocRead(path, completionMessage: {|buf|["/b_query",buf.bufnum]});
 	}
 
-	init { arg argName, argSig, argSampleRate;
+	init { | argName, argSig, argSampleRate |
 
 		if (all.at(argName).notNil and: { all.at(argName).signal.size == argSig.size },
 			{
@@ -99,7 +99,11 @@ Wavesets {
 		this.analyse;
 	}
 
-	*clear {  all = IdentityDictionary.new; }
+	// global repository
+
+	*clear {
+		all = IdentityDictionary.new
+	}
 
 	*initClass {
 		this.clear;
@@ -116,7 +120,7 @@ Wavesets {
 
 	*at { |key| ^all[key] }
 
-	analyse { arg finishFunc;
+	analyse { | finishFunc |
 	//	var chunkSize = 400, pause = 0.01;	// not used yet
 
 		xings = Array.new;
@@ -132,7 +136,7 @@ Wavesets {
 		("Finished signal" + name + ":" + numXings + " xings.").postcln;
 	}
 
-	calcAverages { 		// useful statistics.
+	calcAverages { 	// useful statistics.
 		// calculate maxAmp, minAmp, avgAmp, sqAvgAmp;
 		// and maxSet, minSet, avgLength, sqAvgLength;
 
@@ -150,12 +154,11 @@ Wavesets {
 		avgAmp = amps.sum / numXings;
 		sqrAvgAmp = (amps.squared.sum / numXings).sqrt;
 
-		^this;
 	}
 
 			// should eventually support analysis in blocks in realtime.
 
-	analyseFromTo { arg startFrame = 0, endFrame;
+	analyseFromTo { | startFrame = 0, endFrame |
 		var lengthCount = 0, prevSample = 0.0,
 			maxSamp = 0.0, minSamp = 0.0,
 			maxAmpIndex, minAmpIndex,
@@ -166,42 +169,39 @@ Wavesets {
 		startFrame = max(0, startFrame);
 		endFrame = (endFrame ? signal.size - 1).min(signal.size - 1);
 
-		( startFrame to: endFrame ).do({ arg i;
+		( startFrame to: endFrame ).do { |i|
 			var thisSample;
 			thisSample = signal.at(i);
 
 						// if Xing from non-positive to positive:
-			if (	(prevSample <= 0.0) and: (thisSample > 0.0) and: (lengthCount >= minLength),
+			if(prevSample <= 0.0 and: { thisSample > 0.0 } and: { lengthCount >= minLength }) {
 
-				{
+				if (xings.notEmpty) {
+					// if we already have a first waveset,
+					// keep results from analysis:
+					wavesetAmp = max(maxSamp, minSamp.abs);
+					amps = amps.add(wavesetAmp);
+					lengths = lengths.add(lengthCount);
+					maxima = maxima.add(maxAmpIndex);
+					minima = minima.add(minAmpIndex);
+				};
 
-					if (xings.notEmpty, {
-								// if we already have a first waveset,
-								// keep results from analysis:
-						wavesetAmp = max(maxSamp, minSamp.abs);
-						amps = amps.add(wavesetAmp);
-						lengths = lengths.add(lengthCount);
-						maxima = maxima.add(maxAmpIndex);
-						minima = minima.add(minAmpIndex);
-					});
+				xings = xings.add(i);
 
-					xings = xings.add(i);
+				// lin interpol for fractional crossings
+				frac = prevSample / (prevSample - thisSample);
+				fracXings = fracXings.add( i - 1 + frac );
 
-								// lin interpol for fractional crossings
-					frac = prevSample / (prevSample - thisSample);
-					fracXings = fracXings.add( i - 1 + frac );
-
-								// reset vars for next waveset
-					maxSamp = 0.0;
-					minSamp = 0.0;
-					lengthCount = 0;
-				}
-			);
+				// reset vars for next waveset
+				maxSamp = 0.0;
+				minSamp = 0.0;
+				lengthCount = 0;
+			};
 			lengthCount = lengthCount + 1;
 			if (thisSample > maxSamp) { maxSamp = thisSample; maxAmpIndex = i };
 			if (thisSample < minSamp) { minSamp = thisSample; minAmpIndex = i };
 			prevSample = thisSample;
-		});
+		};
 	}
 				// convenience methods:
 	plot { |startWs=0, length=1|
