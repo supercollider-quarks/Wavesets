@@ -1,6 +1,6 @@
 TITLE:: Wavesets
 summary:: analyse soundfiles into short fragments for granular synthesis
-categories:: GranularSynthesis
+categories:: Synthesis Methods>Granular Synthesis
 related:: Classes/Buffer, Classes/Event
 
 DESCRIPTION::
